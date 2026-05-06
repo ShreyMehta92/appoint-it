@@ -23,13 +23,15 @@ class QueueTokenAdapter extends TypeAdapter<_$QueueTokenImpl> {
       status: fields[3] as String,
       estimatedWaitTimeInMinutes: fields[4] as int,
       createdAt: fields[5] as DateTime,
+      servingStartedAt: fields[6] as DateTime?,
+      completedAt: fields[7] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, _$QueueTokenImpl obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +43,11 @@ class QueueTokenAdapter extends TypeAdapter<_$QueueTokenImpl> {
       ..writeByte(4)
       ..write(obj.estimatedWaitTimeInMinutes)
       ..writeByte(5)
-      ..write(obj.createdAt);
+      ..write(obj.createdAt)
+      ..writeByte(6)
+      ..write(obj.servingStartedAt)
+      ..writeByte(7)
+      ..write(obj.completedAt);
   }
 
   @override
@@ -68,6 +74,12 @@ _$QueueTokenImpl _$$QueueTokenImplFromJson(Map<String, dynamic> json) =>
       estimatedWaitTimeInMinutes:
           (json['estimatedWaitTimeInMinutes'] as num).toInt(),
       createdAt: DateTime.parse(json['createdAt'] as String),
+      servingStartedAt: json['servingStartedAt'] == null
+          ? null
+          : DateTime.parse(json['servingStartedAt'] as String),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
     );
 
 Map<String, dynamic> _$$QueueTokenImplToJson(_$QueueTokenImpl instance) =>
@@ -78,4 +90,6 @@ Map<String, dynamic> _$$QueueTokenImplToJson(_$QueueTokenImpl instance) =>
       'status': instance.status,
       'estimatedWaitTimeInMinutes': instance.estimatedWaitTimeInMinutes,
       'createdAt': instance.createdAt.toIso8601String(),
+      'servingStartedAt': instance.servingStartedAt?.toIso8601String(),
+      'completedAt': instance.completedAt?.toIso8601String(),
     };

@@ -26,87 +26,110 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final queueBox = ref.watch(queueTokenBoxProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Search & Filter')),
+      backgroundColor: const Color(0xFFF7F8FC),
+      appBar: AppBar(
+        title: const Text('Search Records', style: TextStyle(fontWeight: FontWeight.w700)),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
       body: Column(
         children: [
-          _buildSearchAndFilter(),
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search by patient name...',
+                    hintStyle: const TextStyle(color: Colors.black38),
+                    prefixIcon: const Icon(Icons.search, color: Colors.black38),
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F6),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _filters.map((filter) {
+                      final isSelected = _selectedFilter == filter;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedFilter = filter),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              filter,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected ? Colors.white : Colors.black54,
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
           Expanded(
             child: ValueListenableBuilder<Box<Appointment>>(
               valueListenable: appointmentBox.listenable(),
               builder: (context, box, _) {
                 var appointments = box.values.toList();
 
-                // Apply Filters
                 if (_selectedFilter != 'All') {
                   appointments = appointments.where((a) => a.status == _selectedFilter).toList();
                 }
 
-                // Apply Search
                 if (_searchQuery.isNotEmpty) {
                   appointments = appointments
                       .where((a) => a.name.toLowerCase().contains(_searchQuery.toLowerCase()))
                       .toList();
                 }
 
-                // Sort by newest first
                 appointments.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
                 if (appointments.isEmpty) {
-                  return const Center(child: Text('No results found.'));
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off_rounded, size: 56, color: Colors.black26),
+                        SizedBox(height: 12),
+                        Text('No results found', style: TextStyle(color: Colors.black38, fontSize: 15)),
+                      ],
+                    ),
+                  );
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: appointments.length,
                   itemBuilder: (context, index) {
                     final appt = appointments[index];
-                    
-                    // Find associated queue token if any
                     final token = _getQueueToken(queueBox, appt.id);
-
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  appt.name,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
-                                Chip(
-                                  label: Text(appt.status, style: const TextStyle(fontSize: 12)),
-                                  padding: EdgeInsets.zero,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text('Service: ${appt.serviceType}'),
-                            Text('Date: ${DateFormat('MMM dd, yyyy').format(appt.date)}'),
-                            Text('Time Slot: ${appt.timeSlot}'),
-                            
-                            if (token != null) ...[
-                              const Divider(),
-                              Row(
-                                children: [
-                                  const Icon(Icons.confirmation_number, size: 16, color: Colors.blue),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Queue Token: #${token.queueNumber} (${token.status})',
-                                    style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue),
-                                  ),
-                                ],
-                              ),
-                            ]
-                          ],
-                        ),
-                      ),
-                    );
+                    return _buildResultCard(appt, token);
                   },
                 );
               },
@@ -125,45 +148,91 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  Widget _buildSearchAndFilter() {
+  Widget _buildResultCard(Appointment appt, QueueToken? token) {
+    final statusColor = _statusColor(appt.status);
+
     return Container(
-      padding: const EdgeInsets.all(16.0),
-      color: Theme.of(context).colorScheme.surface,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'Search by patient name...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              filled: true,
-            ),
-            onChanged: (val) => setState(() => _searchQuery = val),
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: _filters.map((filter) {
-                final isSelected = _selectedFilter == filter;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: FilterChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedFilter = filter;
-                      });
-                    },
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.black.withOpacity(0.06)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    appt.name,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                   ),
-                );
-              }).toList(),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    appt.status,
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _infoChip(Icons.design_services_outlined, appt.serviceType),
+                const SizedBox(width: 8),
+                _infoChip(Icons.calendar_today_outlined, DateFormat('MMM dd, yyyy').format(appt.date)),
+                const SizedBox(width: 8),
+                _infoChip(Icons.access_time, appt.timeSlot),
+              ],
+            ),
+            if (token != null) ...[
+              const SizedBox(height: 10),
+              const Divider(height: 1),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.confirmation_number_outlined, size: 14, color: const Color(0xFF2563EB)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Queue Token #${token.queueNumber} · ${token.status}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _infoChip(IconData icon, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.black38),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+      ],
+    );
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Scheduled': return Colors.blue;
+      case 'In Progress': return Colors.orange;
+      case 'Completed': return Colors.green;
+      case 'Cancelled': return Colors.red;
+      default: return Colors.grey;
+    }
   }
 }

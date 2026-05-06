@@ -11,28 +11,51 @@ final queueServiceProvider = Provider<QueueService>((ref) {
 
 class QueueService {
   final QueueRepository _repository;
-  static const int averageServiceTimeMinutes = 15;
+  static const int fallbackServiceTimeMinutes = 15;
 
   QueueService(this._repository);
+
+  /// Calculates the average service time based on the last 3 completed appointments.
+  /// Falls back to the default value if insufficient data exists.
+  int getDynamicAverageServiceTime() {
+    final tokens = _repository.getQueueTokens();
+    final completed = tokens.where((t) => t.status == 'Completed').toList();
+
+    if (completed.isEmpty) return fallbackServiceTimeMinutes;
+
+    // Sort by createdAt descending to get most recent completions
+    completed.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Take up to the last 3
+    final recent = completed.take(3).toList();
+
+    if (recent.length >= 2) {
+      // Calculate average gap between consecutive creations as a proxy for service time
+      int totalMinutes = 0;
+      for (int i = 0; i < recent.length - 1; i++) {
+        final diff = recent[i].createdAt.difference(recent[i + 1].createdAt).inMinutes.abs();
+        totalMinutes += diff.clamp(1, 60); // clamp to sane bounds
+      }
+      final avg = (totalMinutes / (recent.length - 1)).round();
+      return avg > 0 ? avg : fallbackServiceTimeMinutes;
+    }
+
+    return fallbackServiceTimeMinutes;
+  }
 
   /// Generates a new token for an appointment
   Future<QueueToken> generateToken(String appointmentId) async {
     final tokens = _repository.getQueueTokens();
-    
-    // Find highest queue number for today
-    // For simplicity, we just take the highest number overall or 0 if empty
+
     int maxNumber = 0;
     for (var t in tokens) {
-      if (t.queueNumber > maxNumber) {
-        maxNumber = t.queueNumber;
-      }
+      if (t.queueNumber > maxNumber) maxNumber = t.queueNumber;
     }
 
     final newNumber = maxNumber + 1;
     final currentServing = getCurrentServingNumber();
-    
-    // Calculate wait time
-    final waitTime = (newNumber - currentServing) * averageServiceTimeMinutes;
+    final avgTime = getDynamicAverageServiceTime();
+    final waitTime = (newNumber - currentServing) * avgTime;
 
     final token = QueueToken(
       id: const Uuid().v4(),
@@ -51,24 +74,23 @@ class QueueService {
     final tokens = _repository.getQueueTokens();
     final servingTokens = tokens.where((t) => t.status == 'Serving').toList();
     if (servingTokens.isNotEmpty) {
-      // Return the lowest serving number
       servingTokens.sort((a, b) => a.queueNumber.compareTo(b.queueNumber));
       return servingTokens.first.queueNumber;
     }
-    
-    // If none are serving, find the highest completed token
+
     final completedTokens = tokens.where((t) => t.status == 'Completed').toList();
     if (completedTokens.isNotEmpty) {
       completedTokens.sort((a, b) => b.queueNumber.compareTo(a.queueNumber));
       return completedTokens.first.queueNumber;
     }
 
-    return 0; // Queue hasn't started
+    return 0;
   }
 
   int getEstimatedWaitTime(int queueNumber) {
     final currentServing = getCurrentServingNumber();
-    final waitTime = (queueNumber - currentServing) * averageServiceTimeMinutes;
+    final avgTime = getDynamicAverageServiceTime();
+    final waitTime = (queueNumber - currentServing) * avgTime;
     return waitTime > 0 ? waitTime : 0;
   }
 

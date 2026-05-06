@@ -14,145 +14,228 @@ class DashboardScreen extends ConsumerWidget {
     final queueBox = ref.watch(queueTokenBoxProvider);
     final auth = ref.watch(authServiceProvider);
     final user = ref.watch(authStateProvider).value;
-    final roleAsync = user != null ? ref.watch(userRoleProvider(user.uid)) : const AsyncValue<String?>.data(null);
+    final roleAsync = user != null
+        ? ref.watch(userRoleProvider(user.uid))
+        : const AsyncValue<String?>.data(null);
+
+    final isAdmin = roleAsync.value == 'admin';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          if (roleAsync.value == 'admin')
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings),
-              tooltip: 'Admin Area',
-              onPressed: () => context.push('/admin'),
+      backgroundColor: const Color(0xFFF7F8FC),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 140,
+            floating: false,
+            pinned: true,
+            backgroundColor: const Color(0xFF2563EB),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              collapseMode: CollapseMode.pin,
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        isAdmin ? 'Admin Panel' : 'Hello, Patient 👋',
+                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                      ),
+                      const Text(
+                        'Appointment Manager',
+                        style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () => auth.signOut(),
+            actions: [
+              if (isAdmin)
+                IconButton(
+                  icon: const Icon(Icons.shield_outlined),
+                  tooltip: 'Admin Area',
+                  onPressed: () => context.push('/admin'),
+                ),
+              IconButton(
+                icon: const Icon(Icons.logout),
+                tooltip: 'Logout',
+                onPressed: () => auth.signOut(),
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(20),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Stats Card
+                ValueListenableBuilder<Box<QueueToken>>(
+                  valueListenable: queueBox.listenable(),
+                  builder: (context, box, _) {
+                    final tokens = box.values;
+                    final waiting = tokens.where((t) => t.status == 'Waiting').length;
+                    final serving = tokens.where((t) => t.status == 'Serving').length;
+                    final completed = tokens.where((t) => t.status == 'Completed').length;
+
+                    return Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStat('Waiting', waiting, Colors.orange),
+                          _buildStatDivider(),
+                          _buildStat('Serving', serving, const Color(0xFF2563EB)),
+                          _buildStatDivider(),
+                          _buildStat('Done', completed, Colors.green),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 28),
+                const Text(
+                  'Actions',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.black87),
+                ),
+                const SizedBox(height: 14),
+
+                // Action Cards
+                _buildActionRow(context, [
+                  _ActionItem(title: 'Book', subtitle: 'New appointment', icon: Icons.add_circle_outline, color: const Color(0xFF2563EB), route: '/booking'),
+                  _ActionItem(title: 'Queue', subtitle: 'Live status', icon: Icons.people_outline, color: Colors.orange, route: '/queue'),
+                ]),
+                const SizedBox(height: 12),
+                _buildActionRow(context, [
+                  _ActionItem(title: 'Search', subtitle: 'Find records', icon: Icons.search, color: Colors.teal, route: '/search'),
+                  if (isAdmin)
+                    _ActionItem(title: 'Manage', subtitle: 'Admin controls', icon: Icons.admin_panel_settings_outlined, color: Colors.deepPurple, route: '/admin'),
+                ]),
+
+                const SizedBox(height: 28),
+                // Info banner
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          isAdmin
+                              ? 'You have admin access. Manage the queue from the Manage section.'
+                              : 'Book an appointment to get your queue token. You\'ll be notified when it\'s your turn.',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF1D4ED8)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    );
+  }
+
+  Widget _buildStat(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.black45, fontWeight: FontWeight.w500)),
+      ],
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(width: 1, height: 36, color: Colors.black.withOpacity(0.08));
+  }
+
+  Widget _buildActionRow(BuildContext context, List<_ActionItem> items) {
+    return Row(
+      children: items.map((item) {
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: items.last == item ? 0 : 12),
+            child: _buildActionCard(context, item),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildActionCard(BuildContext context, _ActionItem item) {
+    return GestureDetector(
+      onTap: () => context.push(item.route),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3)),
+          ],
+        ),
+        child: Row(
           children: [
-            const Text(
-              'Welcome back!',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: item.color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(item.icon, color: item.color, size: 22),
             ),
-            const SizedBox(height: 24),
-            ValueListenableBuilder<Box<QueueToken>>(
-              valueListenable: queueBox.listenable(),
-              builder: (context, box, _) {
-                final tokens = box.values;
-                final waitingCount = tokens.where((t) => t.status == 'Waiting').length;
-                final servingCount = tokens.where((t) => t.status == 'Serving').length;
-                
-                return Card(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem('Waiting', waitingCount),
-                        _buildStatItem('Serving', servingCount),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              'Quick Actions',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              children: [
-                _buildActionCard(
-                  context,
-                  title: 'Book\nAppointment',
-                  icon: Icons.calendar_today,
-                  color: Colors.blue.shade100,
-                  onTap: () => context.push('/booking'),
-                ),
-                _buildActionCard(
-                  context,
-                  title: 'Live\nQueue',
-                  icon: Icons.people_alt,
-                  color: Colors.orange.shade100,
-                  onTap: () => context.push('/queue'),
-                ),
-                _buildActionCard(
-                  context,
-                  title: 'Search\nRecords',
-                  icon: Icons.search,
-                  color: Colors.green.shade100,
-                  onTap: () => context.push('/search'),
-                ),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                  Text(item.subtitle, style: const TextStyle(fontSize: 11, color: Colors.black45)),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildStatItem(String label, int count) {
-    return Column(
-      children: [
-        Text(
-          '$count',
-          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-        ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 48, color: Colors.black54),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+class _ActionItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String route;
+  const _ActionItem({required this.title, required this.subtitle, required this.icon, required this.color, required this.route});
 }

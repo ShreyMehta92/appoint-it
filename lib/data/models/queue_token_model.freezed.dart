@@ -33,6 +33,10 @@ mixin _$QueueToken {
   int get estimatedWaitTimeInMinutes => throw _privateConstructorUsedError;
   @HiveField(5)
   DateTime get createdAt => throw _privateConstructorUsedError;
+  @HiveField(6)
+  DateTime? get servingStartedAt => throw _privateConstructorUsedError;
+  @HiveField(7)
+  DateTime? get completedAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -52,7 +56,9 @@ abstract class $QueueTokenCopyWith<$Res> {
       @HiveField(2) int queueNumber,
       @HiveField(3) String status,
       @HiveField(4) int estimatedWaitTimeInMinutes,
-      @HiveField(5) DateTime createdAt});
+      @HiveField(5) DateTime createdAt,
+      @HiveField(6) DateTime? servingStartedAt,
+      @HiveField(7) DateTime? completedAt});
 }
 
 /// @nodoc
@@ -74,6 +80,8 @@ class _$QueueTokenCopyWithImpl<$Res, $Val extends QueueToken>
     Object? status = null,
     Object? estimatedWaitTimeInMinutes = null,
     Object? createdAt = null,
+    Object? servingStartedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -100,6 +108,14 @@ class _$QueueTokenCopyWithImpl<$Res, $Val extends QueueToken>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      servingStartedAt: freezed == servingStartedAt
+          ? _value.servingStartedAt
+          : servingStartedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      completedAt: freezed == completedAt
+          ? _value.completedAt
+          : completedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ) as $Val);
   }
 }
@@ -118,7 +134,9 @@ abstract class _$$QueueTokenImplCopyWith<$Res>
       @HiveField(2) int queueNumber,
       @HiveField(3) String status,
       @HiveField(4) int estimatedWaitTimeInMinutes,
-      @HiveField(5) DateTime createdAt});
+      @HiveField(5) DateTime createdAt,
+      @HiveField(6) DateTime? servingStartedAt,
+      @HiveField(7) DateTime? completedAt});
 }
 
 /// @nodoc
@@ -138,6 +156,8 @@ class __$$QueueTokenImplCopyWithImpl<$Res>
     Object? status = null,
     Object? estimatedWaitTimeInMinutes = null,
     Object? createdAt = null,
+    Object? servingStartedAt = freezed,
+    Object? completedAt = freezed,
   }) {
     return _then(_$QueueTokenImpl(
       id: null == id
@@ -164,6 +184,14 @@ class __$$QueueTokenImplCopyWithImpl<$Res>
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime,
+      servingStartedAt: freezed == servingStartedAt
+          ? _value.servingStartedAt
+          : servingStartedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      completedAt: freezed == completedAt
+          ? _value.completedAt
+          : completedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
@@ -178,7 +206,9 @@ class _$QueueTokenImpl implements _QueueToken {
       @HiveField(2) required this.queueNumber,
       @HiveField(3) required this.status,
       @HiveField(4) required this.estimatedWaitTimeInMinutes,
-      @HiveField(5) required this.createdAt});
+      @HiveField(5) required this.createdAt,
+      @HiveField(6) this.servingStartedAt,
+      @HiveField(7) this.completedAt});
 
   factory _$QueueTokenImpl.fromJson(Map<String, dynamic> json) =>
       _$$QueueTokenImplFromJson(json);
@@ -202,10 +232,16 @@ class _$QueueTokenImpl implements _QueueToken {
   @override
   @HiveField(5)
   final DateTime createdAt;
+  @override
+  @HiveField(6)
+  final DateTime? servingStartedAt;
+  @override
+  @HiveField(7)
+  final DateTime? completedAt;
 
   @override
   String toString() {
-    return 'QueueToken(id: $id, appointmentId: $appointmentId, queueNumber: $queueNumber, status: $status, estimatedWaitTimeInMinutes: $estimatedWaitTimeInMinutes, createdAt: $createdAt)';
+    return 'QueueToken(id: $id, appointmentId: $appointmentId, queueNumber: $queueNumber, status: $status, estimatedWaitTimeInMinutes: $estimatedWaitTimeInMinutes, createdAt: $createdAt, servingStartedAt: $servingStartedAt, completedAt: $completedAt)';
   }
 
   @override
@@ -224,13 +260,25 @@ class _$QueueTokenImpl implements _QueueToken {
                 other.estimatedWaitTimeInMinutes ==
                     estimatedWaitTimeInMinutes) &&
             (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+                other.createdAt == createdAt) &&
+            (identical(other.servingStartedAt, servingStartedAt) ||
+                other.servingStartedAt == servingStartedAt) &&
+            (identical(other.completedAt, completedAt) ||
+                other.completedAt == completedAt));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(runtimeType, id, appointmentId, queueNumber,
-      status, estimatedWaitTimeInMinutes, createdAt);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      appointmentId,
+      queueNumber,
+      status,
+      estimatedWaitTimeInMinutes,
+      createdAt,
+      servingStartedAt,
+      completedAt);
 
   @JsonKey(ignore: true)
   @override
@@ -253,7 +301,9 @@ abstract class _QueueToken implements QueueToken {
       @HiveField(2) required final int queueNumber,
       @HiveField(3) required final String status,
       @HiveField(4) required final int estimatedWaitTimeInMinutes,
-      @HiveField(5) required final DateTime createdAt}) = _$QueueTokenImpl;
+      @HiveField(5) required final DateTime createdAt,
+      @HiveField(6) final DateTime? servingStartedAt,
+      @HiveField(7) final DateTime? completedAt}) = _$QueueTokenImpl;
 
   factory _QueueToken.fromJson(Map<String, dynamic> json) =
       _$QueueTokenImpl.fromJson;
@@ -276,6 +326,12 @@ abstract class _QueueToken implements QueueToken {
   @override
   @HiveField(5)
   DateTime get createdAt;
+  @override
+  @HiveField(6)
+  DateTime? get servingStartedAt;
+  @override
+  @HiveField(7)
+  DateTime? get completedAt;
   @override
   @JsonKey(ignore: true)
   _$$QueueTokenImplCopyWith<_$QueueTokenImpl> get copyWith =>
