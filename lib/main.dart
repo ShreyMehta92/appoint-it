@@ -11,14 +11,15 @@ import 'data/models/queue_token_model.dart';
 import 'data/models/user_model.dart';
 import 'data/models/admin_model.dart';
 import 'data/models/sync_task_model.dart';
+import 'core/services/sync_service.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Hive
   try {
-    final appDocumentDir = await getApplicationDocumentsDirectory();
-    Hive.init(appDocumentDir.path);
+    await Hive.initFlutter();
     
     // Register Adapters
     Hive.registerAdapter(AppointmentAdapter());
@@ -37,11 +38,11 @@ void main() async {
 
   // Initialize Firebase
   try {
-    // If you have run `flutterfire configure`, you can use DefaultFirebaseOptions.currentPlatform
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     debugPrint('Firebase initialization error: $e');
-    debugPrint('Please ensure you have run `flutterfire configure` to generate firebase_options.dart');
   }
 
   runApp(
@@ -51,11 +52,25 @@ void main() async {
   );
 }
 
-class SmartQueueApp extends ConsumerWidget {
+class SmartQueueApp extends ConsumerStatefulWidget {
   const SmartQueueApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SmartQueueApp> createState() => _SmartQueueAppState();
+}
+
+class _SmartQueueAppState extends ConsumerState<SmartQueueApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Start background sync listener
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(syncServiceProvider).startListening();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(

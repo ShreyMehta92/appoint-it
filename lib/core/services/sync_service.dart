@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../data/datasources/local_data_source.dart';
 import '../../data/datasources/remote_data_source.dart';
+import '../../data/models/sync_task_model.dart';
 import '../../providers/data_providers.dart';
 
 final syncServiceProvider = Provider<SyncService>((ref) {
@@ -18,6 +20,7 @@ class SyncService {
   final LocalDataSource _localDataSource;
   final RemoteDataSource _remoteDataSource;
   StreamSubscription? _connectivitySubscription;
+  StreamSubscription? _hiveSubscription;
   bool _isSyncing = false;
 
   SyncService(this._localDataSource, this._remoteDataSource);
@@ -25,15 +28,29 @@ class SyncService {
   void startListening() {
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       if (results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi)) {
-        _syncPendingTasks();
+        triggerSync();
       }
     });
+
+    // Also listen to Hive Box additions so it syncs immediately when new tasks arrive
+    try {
+      final box = Hive.box<SyncTask>('sync_tasks');
+      _hiveSubscription = box.watch().listen((event) {
+        triggerSync();
+      });
+    } catch (_) {}
+
     // Trigger sync on start
-    _syncPendingTasks();
+    triggerSync();
   }
 
   void stopListening() {
     _connectivitySubscription?.cancel();
+    _hiveSubscription?.cancel();
+  }
+
+  Future<void> triggerSync() async {
+    await _syncPendingTasks();
   }
 
   Future<void> _syncPendingTasks() async {

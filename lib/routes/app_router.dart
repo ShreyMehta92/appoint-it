@@ -2,22 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../features/authentication/splash_screen.dart';
 import '../features/booking/dashboard_screen.dart';
 import '../features/booking/booking_screen.dart';
 import '../features/queue/queue_status_screen.dart';
 import '../features/admin/admin_dashboard_screen.dart';
+import '../features/search/search_screen.dart';
+import '../features/auth/login_screen.dart';
+import '../features/auth/register_screen.dart';
+import '../providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authStateProvider);
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: _AuthRefreshListenable(ref),
+    redirect: (context, state) {
+      final isLoggedIn = authState.value != null;
+      final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+
+      if (!isLoggedIn) {
+        return isAuthRoute ? null : '/login';
+      }
+
+      if (isAuthRoute) {
+        return '/';
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
-        path: '/',
-        builder: (context, state) => const SplashScreen(),
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/dashboard',
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/',
         builder: (context, state) => const DashboardScreen(),
       ),
       GoRoute(
@@ -32,6 +56,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin',
         builder: (context, state) => const AdminDashboardScreen(),
       ),
+      GoRoute(
+        path: '/search',
+        builder: (context, state) => const SearchScreen(),
+      ),
     ],
   );
 });
+
+class _AuthRefreshListenable extends ChangeNotifier {
+  _AuthRefreshListenable(Ref ref) {
+    ref.listen(authStateProvider, (previous, next) {
+      notifyListeners();
+    });
+  }
+}
