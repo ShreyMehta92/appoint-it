@@ -55,16 +55,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   Future<void> _submitBooking() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isBooking = true;
-    });
+    setState(() => _isBooking = true);
 
     try {
       final appointmentRepo = ref.read(appointmentRepositoryProvider);
       final queueService = ref.read(queueServiceProvider);
 
-      final newAppointmentId = const Uuid().v4();
-      
       final appointmentDate = DateTime(
         _selectedDate.year,
         _selectedDate.month,
@@ -73,8 +69,37 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         _selectedTime.minute,
       );
 
+      // --- Conflict Detection ---
+      if (appointmentRepo.isSlotConflicted(appointmentDate)) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Row(
+                children: [
+                  Icon(Icons.block, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Slot Unavailable'),
+                ],
+              ),
+              content: const Text(
+                'This time slot is already booked.\n\nEach slot is locked for 15 minutes after a booking. Please choose a different time.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
       final appointment = Appointment(
-        id: newAppointmentId,
+        id: const Uuid().v4(),
         name: _nameController.text.trim(),
         serviceType: _selectedService,
         date: appointmentDate,
@@ -88,7 +113,10 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Appointment booked successfully!')),
+          const SnackBar(
+            content: Text('Appointment booked successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
         context.push('/queue');
       }
@@ -99,11 +127,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isBooking = false;
-        });
-      }
+      if (mounted) setState(() => _isBooking = false);
     }
   }
 

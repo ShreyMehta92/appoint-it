@@ -8,6 +8,27 @@ class AppointmentRepository {
 
   AppointmentRepository(this.localDataSource);
 
+  /// Returns true if the given [dateTime] conflicts with any existing active appointment.
+  /// A conflict is defined as another appointment within a ±15 minute window on the same day.
+  bool isSlotConflicted(DateTime dateTime) {
+    const lockWindowMinutes = 15;
+    final existing = localDataSource.getAppointments();
+
+    for (final appt in existing) {
+      // Ignore cancelled/completed appointments — they free up the slot
+      if (appt.status == 'Cancelled' || appt.status == 'Completed') continue;
+
+      // Must be the same calendar day
+      if (appt.date.year != dateTime.year ||
+          appt.date.month != dateTime.month ||
+          appt.date.day != dateTime.day) continue;
+
+      final diffMinutes = appt.date.difference(dateTime).inMinutes.abs();
+      if (diffMinutes < lockWindowMinutes) return true;
+    }
+    return false;
+  }
+
   Future<void> bookAppointment(Appointment appointment) async {
     // 1. Save locally
     await localDataSource.saveAppointment(appointment);
@@ -23,8 +44,6 @@ class AppointmentRepository {
       createdAt: DateTime.now(),
     );
     await localDataSource.saveSyncTask(syncTask);
-
-    // Syncing will be handled by a background SyncService
   }
 
   Future<void> updateAppointmentStatus(String id, String newStatus) async {

@@ -9,23 +9,36 @@ import '../features/admin/admin_dashboard_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/auth/login_screen.dart';
 import '../features/auth/register_screen.dart';
+import '../features/auth/verify_email_screen.dart';
 import '../providers/auth_providers.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final isEmailVerified = ref.watch(emailVerifiedProvider);
 
   return GoRouter(
     initialLocation: '/',
     refreshListenable: _AuthRefreshListenable(ref),
     redirect: (context, state) {
       final isLoggedIn = authState.value != null;
-      final isAuthRoute = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isEmailVerified = ref.read(emailVerifiedProvider);
+      final loc = state.matchedLocation;
 
+      final isAuthRoute = loc == '/login' || loc == '/register';
+      final isVerifyRoute = loc == '/verify-email';
+
+      // Not logged in → go to login
       if (!isLoggedIn) {
         return isAuthRoute ? null : '/login';
       }
 
-      if (isAuthRoute) {
+      // Logged in but email not verified → go to verify screen
+      if (!isEmailVerified) {
+        return isVerifyRoute ? null : '/verify-email';
+      }
+
+      // Logged in + verified + on auth screen → go to dashboard
+      if (isAuthRoute || isVerifyRoute) {
         return '/';
       }
 
@@ -39,6 +52,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
       GoRoute(
         path: '/',
@@ -67,6 +84,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 class _AuthRefreshListenable extends ChangeNotifier {
   _AuthRefreshListenable(Ref ref) {
     ref.listen(authStateProvider, (previous, next) {
+      notifyListeners();
+    });
+    ref.listen(emailVerifiedProvider, (previous, next) {
       notifyListeners();
     });
   }

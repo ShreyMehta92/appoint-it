@@ -30,15 +30,18 @@ class AuthService {
     );
 
     if (credential.user != null) {
-      // Create user document in Firestore
-      await _firestore.collection('users').doc(credential.user!.uid).set({
-        'uid': credential.user!.uid,
-        'email': email,
-        'name': name,
-        'role': role,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    }
+        // Send verification email
+        await credential.user!.sendEmailVerification();
+
+        // Create user document in Firestore
+        await _firestore.collection('users').doc(credential.user!.uid).set({
+          'uid': credential.user!.uid,
+          'email': email,
+          'name': name,
+          'role': role,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
 
     return credential;
   }
@@ -46,6 +49,19 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  // Check if current user's email is verified
+  bool get isEmailVerified => _auth.currentUser?.emailVerified ?? false;
+
+  // Reload user to get latest email verification status
+  Future<void> reloadUser() async {
+    await _auth.currentUser?.reload();
+  }
+
+  // Resend verification email
+  Future<void> resendVerificationEmail() async {
+    await _auth.currentUser?.sendEmailVerification();
   }
 
   // Get user role from Firestore
