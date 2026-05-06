@@ -1,0 +1,25 @@
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$SyncTaskImpl _$$SyncTaskImplFromJson(Map<String, dynamic> json) =>
+    _$SyncTaskImpl(
+      id: json['id'] as String,
+      collection: json['collection'] as String,
+      documentId: json['documentId'] as String,
+      operation: json['operation'] as String,
+      payload: json['payload'] as Map<String, dynamic>,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+
+Map<String, dynamic> _$$SyncTaskImplToJson(_$SyncTaskImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'collection': instance.collection,
+      'documentId': instance.documentId,
+      'operation': instance.operation,
+      'payload': instance.payload,
+      'status': instance.status,
+      'createdAt': instance.createdAt.toIso8601String(),
+    };

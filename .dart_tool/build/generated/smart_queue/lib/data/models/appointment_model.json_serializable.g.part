@@ -1,0 +1,25 @@
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+_$AppointmentImpl _$$AppointmentImplFromJson(Map<String, dynamic> json) =>
+    _$AppointmentImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      serviceType: json['serviceType'] as String,
+      date: DateTime.parse(json['date'] as String),
+      timeSlot: json['timeSlot'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+
+Map<String, dynamic> _$$AppointmentImplToJson(_$AppointmentImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'serviceType': instance.serviceType,
+      'date': instance.date.toIso8601String(),
+      'timeSlot': instance.timeSlot,
+      'status': instance.status,
+      'createdAt': instance.createdAt.toIso8601String(),
+    };

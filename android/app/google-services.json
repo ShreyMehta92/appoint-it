@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "602418220767",
+    "project_id": "appoint-it-4567",
+    "storage_bucket": "appoint-it-4567.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:602418220767:android:858454ae023e92f76de36a",
+        "android_client_info": {
+          "package_name": "com.example.mad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzmRK8k1_L4zcj75e__uQ0MZByaFuv48w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
